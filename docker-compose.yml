@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    container_name: innovatech-frontend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=${PORT}
+      - DEBUG=${DEBUG}
+      - BACKEND_URL=${BACKEND_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - innovatech-net
+
+networks:
+  innovatech-net:
+    driver: bridge
