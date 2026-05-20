@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout codigo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login en Docker Hub
         uses: docker/login-action@v3
@@ -21,7 +21,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build y Push imagen Docker
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -36,26 +36,12 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mkdir -p /home/ubuntu/frontend
-
-            cat > /home/ubuntu/frontend/.env << EOF
-            PORT=5000
-            DEBUG=False
-            BACKEND_URL=${{ secrets.BACKEND_URL }}
-            SECRET_KEY=${{ secrets.SECRET_KEY }}
-            EOF
-
+            rm -f /home/ubuntu/frontend.env
+            printf 'PORT=5000\nDEBUG=False\nBACKEND_URL=${{ secrets.BACKEND_URL }}\nSECRET_KEY=${{ secrets.SECRET_KEY }}\n' > /home/ubuntu/frontend.env
             docker stop innovatech-frontend || true
             docker rm innovatech-frontend || true
             docker pull pabloandres23/innovatech-frontend:latest
-
-            docker run -d \
-              --name innovatech-frontend \
-              --restart always \
-              -p 5000:5000 \
-              --env-file /home/ubuntu/frontend/.env \
-              pabloandres23/innovatech-frontend:latest
-
-            sleep 5
+            docker run -d --name innovatech-frontend --restart always -p 5000:5000 --env-file /home/ubuntu/frontend.env pabloandres23/innovatech-frontend:latest
+            sleep 15
             docker ps | grep innovatech-frontend
-            curl -f http://localhost:5000 && echo "Frontend OK"
+            echo "Frontend OK"

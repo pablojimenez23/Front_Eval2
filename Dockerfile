@@ -12,5 +12,7 @@ COPY . .
 ENV PATH=/root/.local/bin:$PATH
 ENV PORT=5000
 ENV DEBUG=False
+ENV BACKEND_URL=http://localhost:3000
+ENV SECRET_KEY=clave_secreta_por_defecto
 EXPOSE 5000
 CMD ["python", "app.py"]
