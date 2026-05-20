@@ -1,0 +1,61 @@
+name: CI/CD Frontend Innovatech
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  build-and-deploy:
+    name: Build, Push y Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v3
+
+      - name: Login en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build y Push imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            pabloandres23/innovatech-frontend:latest
+            pabloandres23/innovatech-frontend:${{ github.sha }}
+
+      - name: Desplegar en EC2-Frontend
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/frontend
+
+            cat > /home/ubuntu/frontend/.env << EOF
+            PORT=5000
+            DEBUG=False
+            BACKEND_URL=${{ secrets.BACKEND_URL }}
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            EOF
+
+            docker stop innovatech-frontend || true
+            docker rm innovatech-frontend || true
+            docker pull pabloandres23/innovatech-frontend:latest
+
+            docker run -d \
+              --name innovatech-frontend \
+              --restart always \
+              -p 5000:5000 \
+              --env-file /home/ubuntu/frontend/.env \
+              pabloandres23/innovatech-frontend:latest
+
+            sleep 5
+            docker ps | grep innovatech-frontend
+            curl -f http://localhost:5000 && echo "Frontend OK"
